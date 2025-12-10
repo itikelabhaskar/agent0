@@ -1,18 +1,24 @@
 """
 Load data from GCS bucket to BigQuery
-Pulls Excel file from gs://prod-45-hackathon-bucket and loads to BigQuery
+Loads CSV files directly from gs://prod-45-hackathon-bucket to BigQuery
 """
 import sys
 import os
-import tempfile
 import pandas as pd
+import io
 from google.cloud import storage, bigquery
 
 # Configuration
-PROJECT_ID = "prod-12-313"
-DATASET_ID = "12-313"
+PROJECT_ID = "prod-12-335"
+DATASET_ID = "dev_dataset"
 GCS_BUCKET = "prod-45-hackathon-bucket"
-GCS_FILE = "1.1 Improving IP& Data Quality/BaNCs Synthetic Data - DQM AI Use Case.xlsx"
+GCS_FOLDER = "1.1 Improving IP& Data Quality/"
+CSV_FILES = {
+    "sbox-Week1.csv": "week1",
+    "sbox-Week2.csv": "week2",
+    "sbox-Week3.csv": "week3",
+    "sbox-Week4.csv": "week4"
+}
 
 print("=" * 70)
 print("🚀 Loading Data from GCS to BigQuery")
@@ -21,58 +27,42 @@ print()
 print(f"Configuration:")
 print(f"   Project: {PROJECT_ID}")
 print(f"   Dataset: {DATASET_ID}")
-print(f"   Source: gs://{GCS_BUCKET}/{GCS_FILE}")
+print(f"   Source: gs://{GCS_BUCKET}/{GCS_FOLDER}")
+print(f"   CSV Files: {list(CSV_FILES.keys())}")
 print()
 
-# Step 1: Download Excel from GCS
-print("Step 1/4: Downloading Excel from GCS...")
+# Step 1: Read CSV files from GCS
+print("Step 1/3: Reading CSV files from GCS...")
 print("-" * 70)
 try:
     storage_client = storage.Client(project=PROJECT_ID)
     bucket = storage_client.bucket(GCS_BUCKET)
-    blob = bucket.blob(GCS_FILE)
     
-    if not blob.exists():
-        print(f"❌ File not found: gs://{GCS_BUCKET}/{GCS_FILE}")
-        sys.exit(1)
+    csv_data = {}
+    for csv_file, table_name in CSV_FILES.items():
+        file_path = GCS_FOLDER + csv_file
+        blob = bucket.blob(file_path)
+        
+        if not blob.exists():
+            print(f"❌ File not found: gs://{GCS_BUCKET}/{file_path}")
+            sys.exit(1)
+        
+        print(f"   Reading {csv_file}...")
+        csv_content = blob.download_as_text()
+        df = pd.read_csv(io.StringIO(csv_content))
+        csv_data[table_name] = df
+        print(f"      ✅ {len(df)} rows, {len(df.columns)} columns")
     
-    # Download to temp file
-    with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp:
-        print(f"   Downloading {blob.size / (1024*1024):.2f} MB...")
-        blob.download_to_filename(tmp.name)
-        excel_path = tmp.name
-    
-    print(f"✅ Downloaded to: {excel_path}")
+    print(f"✅ All CSV files loaded")
     
 except Exception as e:
-    print(f"❌ Failed to download from GCS: {e}")
+    print(f"❌ Failed to read from GCS: {e}")
     sys.exit(1)
 
 print()
 
-# Step 2: Read Excel sheets
-print("Step 2/4: Reading Excel sheets...")
-print("-" * 70)
-try:
-    xls = pd.ExcelFile(excel_path)
-    sheets = xls.sheet_names
-    print(f"✅ Found {len(sheets)} sheets: {sheets}")
-    
-    sheets_data = {}
-    for sheet in sheets:
-        df = pd.read_excel(xls, sheet_name=sheet)
-        sheets_data[sheet] = df
-        print(f"   - {sheet}: {len(df)} rows, {len(df.columns)} columns")
-    
-except Exception as e:
-    print(f"❌ Failed to read Excel: {e}")
-    os.unlink(excel_path)
-    sys.exit(1)
-
-print()
-
-# Step 3: Create BigQuery dataset
-print("Step 3/4: Setting up BigQuery dataset...")
+# Step 2: Create BigQuery dataset
+print("Step 2/3: Setting up BigQuery dataset...")
 print("-" * 70)
 try:
     bq_client = bigquery.Client(project=PROJECT_ID)
@@ -89,21 +79,18 @@ try:
     
 except Exception as e:
     print(f"❌ Failed to create dataset: {e}")
-    os.unlink(excel_path)
     sys.exit(1)
 
 print()
 
-# Step 4: Load each sheet to BigQuery
-print("Step 4/4: Loading sheets to BigQuery...")
+# Step 3: Load each CSV to BigQuery
+print("Step 3/3: Loading CSV data to BigQuery...")
 print("-" * 70)
 
-for sheet_name, df in sheets_data.items():
-    # Clean table name
-    table_name = sheet_name.lower().replace(" ", "_").replace("-", "_").replace(".", "_")
+for table_name, df in csv_data.items():
     table_id = f"{PROJECT_ID}.{DATASET_ID}.{table_name}"
     
-    print(f"Loading {sheet_name} → {table_name}...")
+    print(f"Loading → {table_name}...")
     
     try:
         job_config = bigquery.LoadJobConfig(
@@ -118,16 +105,7 @@ for sheet_name, df in sheets_data.items():
         print(f"   ✅ Loaded {table.num_rows} rows to {table_name}")
         
     except Exception as e:
-        print(f"   ❌ Failed to load {sheet_name}: {e}")
-
-print()
-
-# Cleanup temp file
-try:
-    os.unlink(excel_path)
-    print("✅ Cleaned up temporary files")
-except:
-    pass
+        print(f"   ❌ Failed to load {table_name}: {e}")
 
 print()
 

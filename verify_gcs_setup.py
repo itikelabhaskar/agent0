@@ -11,10 +11,11 @@ print("=" * 70)
 print()
 
 # Expected configuration
-EXPECTED_PROJECT = "prod-12-313"
+EXPECTED_PROJECT = "prod-12-335"
 EXPECTED_BUCKET = "prod-45-hackathon-bucket"
-EXPECTED_FILE = "1.1 Improving IP& Data Quality/BaNCs Synthetic Data - DQM AI Use Case.xlsx"
-DATASET_ID = "12-313"  # Dataset name in BigQuery
+EXPECTED_FOLDER = "1.1 Improving IP& Data Quality/"
+EXPECTED_CSV_FILES = ["sbox-Week1.csv", "sbox-Week2.csv", "sbox-Week3.csv", "sbox-Week4.csv"]
+DATASET_ID = "dev_dataset"  # Dataset name in BigQuery
 
 # 1. Check GCP Authentication
 print("1️⃣  Checking GCP Authentication...")
@@ -68,70 +69,65 @@ except Exception as e:
     sys.exit(1)
 print()
 
-# 3. Check Excel File in Bucket
-print("3️⃣  Checking Excel File in Bucket...")
+# 3. Check CSV Files in Bucket
+print("3️⃣  Checking CSV Files in Bucket...")
 print("-" * 70)
 try:
     from google.cloud import storage
     
     client = storage.Client(project=EXPECTED_PROJECT)
     bucket = client.bucket(EXPECTED_BUCKET)
-    blob = bucket.blob(EXPECTED_FILE)
     
-    if blob.exists():
-        print(f"✅ Excel file found: {EXPECTED_FILE}")
-        print(f"   Size: {blob.size / (1024*1024):.2f} MB")
-        print(f"   Updated: {blob.updated}")
-        print(f"   Full path: gs://{EXPECTED_BUCKET}/{EXPECTED_FILE}")
-    else:
-        print(f"❌ Excel file not found: {EXPECTED_FILE}")
-        print(f"   Looking in: gs://{EXPECTED_BUCKET}/")
+    all_found = True
+    for csv_file in EXPECTED_CSV_FILES:
+        file_path = EXPECTED_FOLDER + csv_file
+        blob = bucket.blob(file_path)
+        
+        if blob.exists():
+            print(f"✅ {csv_file}: {blob.size / 1024:.1f} KB")
+        else:
+            print(f"❌ {csv_file}: NOT FOUND")
+            all_found = False
+    
+    if not all_found:
         print()
-        print("   Files in bucket (first 20):")
-        blobs = list(bucket.list_blobs(max_results=20))
+        print(f"   Files in folder '{EXPECTED_FOLDER}':")
+        blobs = list(bucket.list_blobs(prefix=EXPECTED_FOLDER))
         for b in blobs:
             print(f"      - {b.name}")
         sys.exit(1)
+    
+    print(f"   Full path: gs://{EXPECTED_BUCKET}/{EXPECTED_FOLDER}")
         
 except Exception as e:
-    print(f"❌ Error checking file: {e}")
+    print(f"❌ Error checking files: {e}")
     sys.exit(1)
 print()
 
-# 4. Download and Verify Excel Structure
-print("4️⃣  Downloading and Verifying Excel Structure...")
+# 4. Verify CSV Structure (sample one file)
+print("4️⃣  Verifying CSV Structure...")
 print("-" * 70)
 try:
     import pandas as pd
     from google.cloud import storage
-    import tempfile
+    import io
     
     client = storage.Client(project=EXPECTED_PROJECT)
     bucket = client.bucket(EXPECTED_BUCKET)
-    blob = bucket.blob(EXPECTED_FILE)
     
-    # Download to temp file
-    with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp:
-        print(f"   Downloading to temp file...")
-        blob.download_to_filename(tmp.name)
-        tmp_path = tmp.name
+    # Sample the first CSV
+    sample_file = EXPECTED_FOLDER + EXPECTED_CSV_FILES[0]
+    blob = bucket.blob(sample_file)
     
-    print(f"✅ Downloaded successfully")
+    print(f"   Sampling: {EXPECTED_CSV_FILES[0]}")
+    csv_data = blob.download_as_text()
+    df = pd.read_csv(io.StringIO(csv_data))
     
-    # Read Excel
-    xls = pd.ExcelFile(tmp_path)
-    print(f"✅ Excel file valid")
-    print(f"   Sheets: {', '.join(xls.sheet_names)}")
-    
-    for sheet in xls.sheet_names:
-        df = pd.read_excel(xls, sheet_name=sheet)
-        print(f"      - {sheet}: {len(df)} rows, {len(df.columns)} columns")
-    
-    # Cleanup
-    os.unlink(tmp_path)
+    print(f"✅ CSV valid: {len(df)} rows, {len(df.columns)} columns")
+    print(f"   Columns: {', '.join(df.columns[:5])}{'...' if len(df.columns) > 5 else ''}")
     
 except Exception as e:
-    print(f"❌ Error reading Excel: {e}")
+    print(f"❌ Error reading CSV: {e}")
     sys.exit(1)
 print()
 
@@ -179,7 +175,8 @@ print(f"Configuration:")
 print(f"   • Project: {EXPECTED_PROJECT}")
 print(f"   • Dataset: {DATASET_ID}")
 print(f"   • GCS Bucket: gs://{EXPECTED_BUCKET}")
-print(f"   • Excel File: {EXPECTED_FILE}")
+print(f"   • Folder: {EXPECTED_FOLDER}")
+print(f"   • CSV Files: {', '.join(EXPECTED_CSV_FILES)}")
 print()
 print(f"Data will be loaded to:")
 print(f"   • {EXPECTED_PROJECT}.{DATASET_ID}.week1")
