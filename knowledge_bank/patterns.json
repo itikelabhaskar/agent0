@@ -1,0 +1,16 @@
+{
+  "learned_patterns": [],
+  "root_causes": {
+    "missing_dob": [
+      {
+        "root_cause": "Data entry incomplete during customer onboarding",
+        "evidence": {
+          "common_pattern": "new_customers"
+        },
+        "identified_ts": "2025-12-09T15:03:46.482618",
+        "confidence": 0.5
+      }
+    ]
+  },
+  "treatment_outcomes": []
+}

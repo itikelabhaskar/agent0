@@ -1,0 +1,10 @@
+{
+  "mode": "local",
+  "project_id": "REPLACE_ME",
+  "dataset": "REPLACE_ME",
+  "raw_table": "REPLACE_ME",
+  "clean_table": "REPLACE_ME",
+  "rules_table": "REPLACE_ME",
+  "use_vertex": false,
+  "vertex_model": ""
+}

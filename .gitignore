@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+.env
+*.env
+*.sqlite3
+.vscode/
+.idea/
+.venv/
+.envrc
+*.pem
+*.key
+/secrets/
+
+# local config (DO NOT COMMIT)
+/config.json
+config/prod.sandbox.json

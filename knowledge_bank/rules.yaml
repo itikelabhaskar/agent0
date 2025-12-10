@@ -1,0 +1,136 @@
+version: '1.0'
+rules:
+- rule_id: TEST_HITL_001
+  rule_text: Test HITL rule
+  sql_snippet: SELECT * FROM test LIMIT 10
+  category: completeness
+  created_by: test_user
+  created_ts: '2025-12-09T15:14:04.866668'
+  approval_status: approved
+  approved_by: test_approver
+  metadata: {}
+  approved_ts: '2025-12-10T01:13:30.197420'
+- rule_id: TEST_HITL_001
+  rule_text: Test HITL rule
+  sql_snippet: SELECT * FROM test LIMIT 10
+  category: completeness
+  created_by: test_user
+  created_ts: '2025-12-09T15:14:35.535582'
+  approval_status: pending
+  approved_by: null
+  metadata: {}
+- rule_id: TEST_HITL_001
+  rule_text: Test HITL rule
+  sql_snippet: SELECT * FROM test LIMIT 10
+  category: completeness
+  created_by: test_user
+  created_ts: '2025-12-09T15:33:54.649146'
+  approval_status: pending
+  approved_by: null
+  metadata: {}
+- rule_id: TEST_HITL_001
+  rule_text: Test HITL rule
+  sql_snippet: SELECT * FROM test LIMIT 10
+  category: completeness
+  created_by: test_user
+  created_ts: '2025-12-10T01:00:56.226398'
+  approval_status: pending
+  approved_by: null
+  metadata: {}
+- rule_id: 8c31756e
+  rule_text: delete everyone who doesnt have a dob
+  sql_snippet: SELECT * FROM `hackathon-practice-480508.dev_dataset.customers` LIMIT
+    200
+  category: completeness
+  created_by: mylilbeast1823@gmail.com
+  created_ts: '2025-12-10T01:05:56.652809'
+  approval_status: pending
+  approved_by: null
+  metadata: {}
+- rule_id: TEST_HITL_001
+  rule_text: Test HITL rule
+  sql_snippet: SELECT * FROM test LIMIT 10
+  category: completeness
+  created_by: test_user
+  created_ts: '2025-12-10T01:09:31.491309'
+  approval_status: pending
+  approved_by: null
+  metadata: {}
+- rule_id: TEST_HITL_001
+  rule_text: Test HITL rule
+  sql_snippet: SELECT * FROM test LIMIT 10
+  category: completeness
+  created_by: test_user
+  created_ts: '2025-12-10T01:13:30.191420'
+  approval_status: pending
+  approved_by: null
+  metadata: {}
+- rule_id: 359c1863
+  rule_text: delete everyone who doesnt have a dob value
+  sql_snippet: SELECT CUS_ID, CUS_FORNAME, CUS_SURNAME, CUS_DOB FROM `hackathon-practice-480508.dev_dataset.customers`
+    WHERE CUS_DOB IS NULL LIMIT 200
+  category: completeness
+  created_by: mylilbeast1823@gmail.com
+  created_ts: '2025-12-10T01:14:42.755976'
+  approval_status: pending
+  approved_by: null
+  metadata: {}
+- rule_id: 00ae9152
+  rule_text: Find customers without date of birth
+  sql_snippet: SELECT CUS_ID, CUS_FORNAME, CUS_SURNAME, CUS_DOB FROM `hackathon-practice-480508.dev_dataset.customers`
+    WHERE CUS_DOB IS NULL LIMIT 200
+  category: completeness
+  created_by: test@example.com
+  created_ts: '2025-12-10T01:21:01.435220'
+  approval_status: pending
+  approved_by: null
+  metadata: {}
+- rule_id: b7438fc6
+  rule_text: Find customers without date of birth
+  sql_snippet: SELECT customer_id, customer_name, date_of_birth, email FROM `hackathon-practice-480508.dev_dataset.customers`
+    WHERE date_of_birth IS NULL LIMIT 200
+  category: completeness
+  created_by: test@example.com
+  created_ts: '2025-12-10T01:24:21.818913'
+  approval_status: pending
+  approved_by: null
+  metadata: {}
+- rule_id: 3ff56aa3
+  rule_text: Find customers without date of birth
+  sql_snippet: SELECT customer_id, customer_name, date_of_birth, email FROM `hackathon-practice-480508.dev_dataset.customers`
+    WHERE date_of_birth IS NULL LIMIT 200
+  category: completeness
+  created_by: test@example.com
+  created_ts: '2025-12-10T01:25:58.104798'
+  approval_status: pending
+  approved_by: null
+  metadata: {}
+- rule_id: 4d15a787
+  rule_text: delete everyone who doesnt have a dob value
+  sql_snippet: SELECT customer_id, customer_name, date_of_birth, email FROM `hackathon-practice-480508.dev_dataset.customers`
+    WHERE date_of_birth IS NULL LIMIT 200
+  category: completeness
+  created_by: test@example.com
+  created_ts: '2025-12-10T01:31:24.975602'
+  approval_status: approved
+  approved_by: admin@test.com
+  metadata: {}
+  approved_ts: '2025-12-10T01:34:07.078316'
+categories:
+  completeness:
+  - TEST_HITL_001
+  - TEST_HITL_001
+  - TEST_HITL_001
+  - TEST_HITL_001
+  - 8c31756e
+  - TEST_HITL_001
+  - TEST_HITL_001
+  - 359c1863
+  - 00ae9152
+  - b7438fc6
+  - 3ff56aa3
+  - 4d15a787
+  validity: []
+  consistency: []
+  accuracy: []
+  timeliness: []
