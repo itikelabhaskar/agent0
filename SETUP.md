@@ -4,7 +4,7 @@
 
 - **Project**: `prod-12-335`
 - **Dataset**: `dev_dataset`
-- **GCS Bucket**: `gs://prod-45-hackathon-bucket`
+- **GCS Bucket**: `gs://prod-45-hackathon-bucket_megalodon`
 - **Data Folder**: `1.1 Improving IP& Data Quality/`
 - **CSV Files**: `sbox-Week1.csv`, `sbox-Week2.csv`, `sbox-Week3.csv`, `sbox-Week4.csv`
 
@@ -18,7 +18,7 @@ python verify_gcs_setup.py
 
 **This checks:**
 - ✅ GCP authentication
-- ✅ Access to bucket `prod-45-hackathon-bucket`
+- ✅ Access to bucket `prod-45-hackathon-bucket_megalodon`
 - ✅ CSV files exist in folder
 - ✅ CSV data is valid
 - ✅ BigQuery dataset status
@@ -28,7 +28,7 @@ python verify_gcs_setup.py
 ✅ Authenticated to GCP
    Project detected: prod-12-335
 
-✅ Bucket found: prod-45-hackathon-bucket
+✅ Bucket found: prod-45-hackathon-bucket_megalodon
 
 ✅ sbox-Week1.csv: 249.7 KB
 ✅ sbox-Week2.csv: 249.8 KB
@@ -40,7 +40,7 @@ python verify_gcs_setup.py
 Configuration:
    • Project: prod-12-335
    • Dataset: dev_dataset
-   • GCS Bucket: gs://prod-45-hackathon-bucket
+   • GCS Bucket: gs://prod-45-hackathon-bucket_megalodon
    • CSV Files: sbox-Week1.csv, sbox-Week2.csv, sbox-Week3.csv, sbox-Week4.csv
 
 Data will be loaded to:
@@ -133,12 +133,12 @@ Open: http://localhost:8501
 
 ### Check bucket access:
 ```powershell
-gsutil ls gs://prod-45-hackathon-bucket/
+gsutil ls gs://prod-45-hackathon-bucket_megalodon/
 ```
 
 ### Check CSV files:
 ```powershell
-gsutil ls "gs://prod-45-hackathon-bucket/1.1 Improving IP& Data Quality/"
+gsutil ls "gs://prod-45-hackathon-bucket_megalodon/1.1 Improving IP& Data Quality/"
 ```
 
 ### Check BigQuery tables:
@@ -171,7 +171,7 @@ gcloud auth application-default login --project=prod-12-335
 
 **Check files exist:**
 ```powershell
-gsutil ls "gs://prod-45-hackathon-bucket/1.1 Improving IP& Data Quality/"
+gsutil ls "gs://prod-45-hackathon-bucket_megalodon/1.1 Improving IP& Data Quality/"
 ```
 
 ### Error: "Permission denied"
@@ -236,7 +236,7 @@ prod-12-335
     └── audit_log (system table)
 
 GCS (source data):
-gs://prod-45-hackathon-bucket/
+gs://prod-45-hackathon-bucket_megalodon/
 └── 1.1 Improving IP& Data Quality/
     ├── sbox-Week1.csv
     ├── sbox-Week2.csv

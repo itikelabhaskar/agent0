@@ -11,7 +11,7 @@ from google.cloud import storage, bigquery
 # Configuration
 PROJECT_ID = "prod-12-335"
 DATASET_ID = "dev_dataset"
-GCS_BUCKET = "prod-45-hackathon-bucket"
+GCS_BUCKET = "prod-45-hackathon-bucket_megalodon"
 GCS_FOLDER = "1.1 Improving IP& Data Quality/"
 CSV_FILES = {
     "sbox-Week1.csv": "week1",
