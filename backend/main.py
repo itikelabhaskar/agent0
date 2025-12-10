@@ -23,8 +23,12 @@ PROJECT_ID = CONFIG["project_id"]
 DATASET = CONFIG["dataset"]
 RULES_TABLE = f"{PROJECT_ID}.{DATASET}.rules"
 ISSUES_TABLE = f"{PROJECT_ID}.{DATASET}.issues"
-CUSTOMERS_TABLE = f"{PROJECT_ID}.{DATASET}.customers"
-HOLDINGS_TABLE = f"{PROJECT_ID}.{DATASET}.holdings"
+# Support both old table names and new week-based tables
+CUSTOMERS_TABLE = f"{PROJECT_ID}.{DATASET}.{CONFIG.get('week1_table', 'week1').split('.')[-1]}"
+WEEK1_TABLE = f"{PROJECT_ID}.{DATASET}.week1"
+WEEK2_TABLE = f"{PROJECT_ID}.{DATASET}.week2"
+WEEK3_TABLE = f"{PROJECT_ID}.{DATASET}.week3"
+WEEK4_TABLE = f"{PROJECT_ID}.{DATASET}.week4"
 USERS_TABLE = f"{PROJECT_ID}.{DATASET}.users"
 
 app = FastAPI()
@@ -142,60 +146,55 @@ def parse_nl_to_sql(nl_text: str, project: str) -> str:
     Parse natural language to SQL using pattern matching and AI.
     This function handles common data quality queries intelligently.
     
-    ACTUAL SCHEMA:
-    - customers: customer_id, customer_name, date_of_birth, email, status
-    - holdings: customer_id, fund_id, holding_amount, holding_date
+    ACTUAL SCHEMA (BaNCS Pension Data):
+    - week1/week2/week3/week4: CUS_ID, CUS_FORNAME, CUS_SURNAME, CUS_DOB, CUS_NI_NO, CUS_POSTCODE, 
+      POLI_GROSS_PMT, UNT_TRAN_AMT, CUS_LIFE_STATUS, SCM_MEMBER_STATUS, etc.
     """
     nl_lower = nl_text.lower().strip()
-    table_customers = f"`{project}.dev_dataset.customers`"
-    table_holdings = f"`{project}.dev_dataset.holdings`"
+    # Default to week1 for queries
+    table_customers = f"`{project}.dev_dataset.week1`"
+    table_holdings = f"`{project}.dev_dataset.week1`"  # Same table for now
     
     # Pattern matching for common data quality queries
     
     # DOB/Date of Birth related queries
     if any(word in nl_lower for word in ['dob', 'date of birth', 'birth', 'birthday']):
         if any(word in nl_lower for word in ['missing', 'null', 'empty', 'no ', 'without', "doesn't have", "doesnt have", "dont have", "don't have", 'not have', 'delete', 'remove', 'find']):
-            return f"SELECT customer_id, customer_name, date_of_birth, email FROM {table_customers} WHERE date_of_birth IS NULL LIMIT 200"
+            return f"SELECT CUS_ID, CUS_FORNAME, CUS_SURNAME, CUS_DOB, CUS_NI_NO FROM {table_customers} WHERE CUS_DOB IS NULL OR CAST(CUS_DOB AS STRING) = '' LIMIT 200"
         elif any(word in nl_lower for word in ['has', 'have', 'with', 'exist']):
-            return f"SELECT customer_id, customer_name, date_of_birth, email FROM {table_customers} WHERE date_of_birth IS NOT NULL LIMIT 200"
+            return f"SELECT CUS_ID, CUS_FORNAME, CUS_SURNAME, CUS_DOB FROM {table_customers} WHERE CUS_DOB IS NOT NULL LIMIT 200"
         elif any(word in nl_lower for word in ['invalid', 'wrong', 'future', 'bad']):
-            return f"SELECT customer_id, customer_name, date_of_birth FROM {table_customers} WHERE date_of_birth > CURRENT_DATE() OR date_of_birth < '1900-01-01' LIMIT 200"
+            return f"SELECT CUS_ID, CUS_FORNAME, CUS_SURNAME, CUS_DOB FROM {table_customers} WHERE SAFE_CAST(CUS_DOB AS TIMESTAMP) > CURRENT_TIMESTAMP() OR SAFE_CAST(CUS_DOB AS TIMESTAMP) < '1900-01-01' LIMIT 200"
     
-    # Email-related queries
-    if any(word in nl_lower for word in ['email', 'e-mail']):
-        if any(word in nl_lower for word in ['missing', 'null', 'empty', 'no ', 'without', "doesn't have", "doesnt have"]):
-            return f"SELECT customer_id, customer_name, email FROM {table_customers} WHERE email IS NULL OR email = '' LIMIT 200"
-        elif any(word in nl_lower for word in ['invalid', 'wrong', 'bad', 'incorrect']):
-            return f"SELECT customer_id, customer_name, email FROM {table_customers} WHERE email NOT LIKE '%@%.%' OR email IS NULL LIMIT 200"
-        elif any(word in nl_lower for word in ['duplicate', 'dup', 'same']):
-            return f"SELECT email, COUNT(*) as cnt FROM {table_customers} GROUP BY email HAVING COUNT(*) > 1 LIMIT 200"
+    # Postcode-related queries
+    if any(word in nl_lower for word in ['postcode', 'postal', 'address']):
+        if any(word in nl_lower for word in ['missing', 'null', 'empty', 'no ', 'without']):
+            return f"SELECT CUS_ID, CUS_FORNAME, CUS_SURNAME, CUS_POSTCODE FROM {table_customers} WHERE CUS_POSTCODE IS NULL OR CUS_POSTCODE = '' LIMIT 200"
     
     # Name-related queries
-    if any(word in nl_lower for word in ['name', 'customer name']):
+    if any(word in nl_lower for word in ['name', 'customer name', 'forname', 'surname']):
         if any(word in nl_lower for word in ['missing', 'null', 'empty', 'no ', 'without']):
-            return f"SELECT customer_id, customer_name FROM {table_customers} WHERE customer_name IS NULL OR customer_name = '' LIMIT 200"
+            return f"SELECT CUS_ID, CUS_FORNAME, CUS_SURNAME FROM {table_customers} WHERE CUS_FORNAME IS NULL OR CUS_SURNAME IS NULL OR CUS_FORNAME = '' OR CUS_SURNAME = '' LIMIT 200"
         elif any(word in nl_lower for word in ['duplicate', 'dup', 'same']):
-            return f"SELECT customer_name, COUNT(*) as cnt FROM {table_customers} GROUP BY customer_name HAVING COUNT(*) > 1 LIMIT 200"
+            return f"SELECT CUS_FORNAME, CUS_SURNAME, COUNT(*) as cnt FROM {table_customers} GROUP BY CUS_FORNAME, CUS_SURNAME HAVING COUNT(*) > 1 LIMIT 200"
     
-    # Status-related queries
-    if 'status' in nl_lower:
-        if any(word in nl_lower for word in ['inactive', 'not active']):
-            return f"SELECT customer_id, customer_name, status FROM {table_customers} WHERE status = 'inactive' LIMIT 200"
-        elif any(word in nl_lower for word in ['active']):
-            return f"SELECT customer_id, customer_name, status FROM {table_customers} WHERE status = 'active' LIMIT 200"
-        elif any(word in nl_lower for word in ['missing', 'null', 'empty']):
-            return f"SELECT customer_id, customer_name, status FROM {table_customers} WHERE status IS NULL OR status = '' LIMIT 200"
+    # Status/Life Status queries
+    if 'status' in nl_lower or 'life' in nl_lower:
+        if any(word in nl_lower for word in ['deceased', 'dead', 'death']):
+            return f"SELECT CUS_ID, CUS_FORNAME, CUS_SURNAME, CUS_LIFE_STATUS, CUS_DEATH_DATE, SCM_MEMBER_STATUS FROM {table_customers} WHERE CUS_LIFE_STATUS = 'DEC' LIMIT 200"
+        elif any(word in nl_lower for word in ['deceased', 'dead']) and any(word in nl_lower for word in ['active', 'policy']):
+            return f"SELECT CUS_ID, CUS_FORNAME, CUS_SURNAME, CUS_LIFE_STATUS, SCM_MEMBER_STATUS FROM {table_customers} WHERE CUS_LIFE_STATUS = 'DEC' AND SCM_MEMBER_STATUS = 'Active' LIMIT 200"
+        elif any(word in nl_lower for word in ['closed', 'inactive']):
+            return f"SELECT CUS_ID, CUS_FORNAME, CUS_SURNAME, SCM_MEMBER_STATUS FROM {table_customers} WHERE SCM_MEMBER_STATUS = 'Closed' LIMIT 200"
     
-    # Holdings/Amount-related queries
-    if any(word in nl_lower for word in ['holding', 'amount', 'balance', 'payment', 'value', 'fund']):
+    # Payment/Amount-related queries
+    if any(word in nl_lower for word in ['payment', 'amount', 'premium', 'transaction', 'gross', 'pmt']):
         if any(word in nl_lower for word in ['negative', 'minus', 'less than zero', '< 0', '<0']):
-            return f"SELECT customer_id, fund_id, holding_amount, holding_date FROM {table_holdings} WHERE holding_amount < 0 LIMIT 200"
-        elif any(word in nl_lower for word in ['zero', '= 0', '=0', 'no value']):
-            return f"SELECT customer_id, fund_id, holding_amount, holding_date FROM {table_holdings} WHERE holding_amount = 0 LIMIT 200"
+            return f"SELECT CUS_ID, CUS_FORNAME, CUS_SURNAME, POLI_GROSS_PMT, UNT_TRAN_AMT FROM {table_customers} WHERE POLI_GROSS_PMT < 0 OR UNT_TRAN_AMT < 0 LIMIT 200"
         elif any(word in nl_lower for word in ['missing', 'null', 'empty']):
-            return f"SELECT customer_id, fund_id, holding_amount, holding_date FROM {table_holdings} WHERE holding_amount IS NULL LIMIT 200"
+            return f"SELECT CUS_ID, CUS_FORNAME, CUS_SURNAME, POLI_GROSS_PMT, UNT_TRAN_AMT FROM {table_customers} WHERE POLI_GROSS_PMT IS NULL OR UNT_TRAN_AMT IS NULL LIMIT 200"
         elif any(word in nl_lower for word in ['high', 'large', 'big', 'outlier', 'anomal']):
-            return f"SELECT customer_id, fund_id, holding_amount, holding_date FROM {table_holdings} WHERE holding_amount > 100000 ORDER BY holding_amount DESC LIMIT 200"
+            return f"SELECT CUS_ID, CUS_FORNAME, CUS_SURNAME, POLI_GROSS_PMT, UNT_TRAN_AMT FROM {table_customers} WHERE POLI_GROSS_PMT > 100000 ORDER BY POLI_GROSS_PMT DESC LIMIT 200"
     
     # Duplicate-related queries
     if any(word in nl_lower for word in ['duplicate', 'dup', 'same', 'repeated']):
@@ -204,22 +203,20 @@ def parse_nl_to_sql(nl_text: str, project: str) -> str:
         elif 'holding' in nl_lower or 'fund' in nl_lower:
             return f"SELECT customer_id, fund_id, COUNT(*) as cnt FROM {table_holdings} GROUP BY customer_id, fund_id HAVING COUNT(*) > 1 LIMIT 200"
     
-    # All customers/holdings queries
+    # All customers queries
     if 'all customer' in nl_lower or 'every customer' in nl_lower or 'list customer' in nl_lower or 'show customer' in nl_lower:
-        return f"SELECT customer_id, customer_name, date_of_birth, email, status FROM {table_customers} LIMIT 200"
+        return f"SELECT CUS_ID, CUS_FORNAME, CUS_SURNAME, CUS_DOB, CUS_POSTCODE, SCM_MEMBER_STATUS FROM {table_customers} LIMIT 200"
     
-    if 'all holding' in nl_lower or 'every holding' in nl_lower or 'list holding' in nl_lower or 'show holding' in nl_lower:
-        return f"SELECT customer_id, fund_id, holding_amount, holding_date FROM {table_holdings} LIMIT 200"
+    # Invalid date queries
+    if any(word in nl_lower for word in ['invalid date', 'bad date', 'wrong date']):
+        return f"SELECT CUS_ID, CUS_FORNAME, CUS_SURNAME, SCH_RENEWAL_DT FROM {table_customers} WHERE SCH_RENEWAL_DT IS NOT NULL LIMIT 200"
     
     # Default: if nothing matched, try to be smart about it
-    # Check if it mentions customers or holdings
-    if 'customer' in nl_lower:
-        return f"SELECT customer_id, customer_name, date_of_birth, email, status FROM {table_customers} LIMIT 200"
-    elif 'holding' in nl_lower or 'fund' in nl_lower:
-        return f"SELECT customer_id, fund_id, holding_amount, holding_date FROM {table_holdings} LIMIT 200"
+    if 'customer' in nl_lower or 'member' in nl_lower:
+        return f"SELECT CUS_ID, CUS_FORNAME, CUS_SURNAME, CUS_DOB, SCM_MEMBER_STATUS FROM {table_customers} LIMIT 200"
     
     # Ultimate fallback - customers with missing DOB (common DQ issue)
-    return f"SELECT customer_id, customer_name, date_of_birth FROM {table_customers} WHERE date_of_birth IS NULL LIMIT 200"
+    return f"SELECT CUS_ID, CUS_FORNAME, CUS_SURNAME, CUS_DOB FROM {table_customers} WHERE CUS_DOB IS NULL OR CAST(CUS_DOB AS STRING) = '' LIMIT 200"
 
 
 def vertex_generate_sql(prompt, project_id, location="us-central1", model="gemini-1.5-flash", temperature=0.0, max_output_tokens=1024):
@@ -293,7 +290,8 @@ You are an assistant that translates a plain English data quality request into a
 Rules:
 - Return only a single SELECT statement (no DML, no CREATE, no UPDATE, no DELETE).
 - The SELECT must return raw identifiers and the problematic column(s) and should include LIMIT 200.
-- Use the EXACT table names: `{project}.dev_dataset.customers` (columns: CUS_ID, CUS_FORNAME, CUS_SURNAME, CUS_DOB, CUS_GENDER, CUS_EMAIL, CUS_PHONE, CUS_ADDRESS) and `{project}.dev_dataset.holdings` (columns: holding_id, customer_id, holding_amount)
+- Use the EXACT table names: `{project}.dev_dataset.week1` (default) or week2/week3/week4
+- Available columns: CUS_ID, CUS_KEY_PARTY_ID, CUS_KEY_CUST_NO, CUS_FORNAME, CUS_SURNAME, CUS_NI_NO, CUS_DOB, CUS_SEX_CD, CUS_OCCUP_CD, CUS_LIFE_STATUS, CUS_POSTCODE, CUS_SMOKER_STAT, CUS_DEATH_DATE, CRL_KEY_POLICY_NO, SCM_PROJ_RET_DT, SCM_PROJ_RET_AGE, SCM_SCH_LEAVE_DATE, SCM_MEMBER_STATUS, SCH_SCHEME_TYP, SCH_RENEWAL_DT, POLID_FREQ, POLID_INCOME_TYPE, POLID_PAYMENT_DAY, POLI_GROSS_PMT, POLI_TAX_PMT, POLI_INCOME_PMT, UNT_TRAN_AMT
 - Do not include comments, explanations, or additional text — return only the SQL statement.
 
 English request:
@@ -567,24 +565,28 @@ async def list_issues(limit: int = 200):
 @app.get("/run-anomaly")
 async def run_anomaly(limit: int = 20):
     """
-    Run anomaly detection using statistical methods (Z-score)
+    Run anomaly detection using statistical methods (Z-score) on payment amounts
     """
-    # Use Z-score based anomaly detection (simple but effective)
+    # Use Z-score based anomaly detection on POLI_GROSS_PMT (simple but effective)
     sql = f"""
     WITH stats AS (
       SELECT
-        AVG(holding_amount) AS mean_amount,
-        STDDEV(holding_amount) AS stddev_amount
-      FROM `{HOLDINGS_TABLE}`
-      WHERE holding_amount IS NOT NULL
+        AVG(POLI_GROSS_PMT) AS mean_amount,
+        STDDEV(POLI_GROSS_PMT) AS stddev_amount
+      FROM `{CUSTOMERS_TABLE}`
+      WHERE POLI_GROSS_PMT IS NOT NULL
     ),
     scored AS (
       SELECT
-        h.*,
-        ABS((h.holding_amount - s.mean_amount) / NULLIF(s.stddev_amount, 0)) AS z_score
-      FROM `{HOLDINGS_TABLE}` h
+        h.CUS_ID,
+        h.CUS_FORNAME,
+        h.CUS_SURNAME,
+        h.POLI_GROSS_PMT as payment_amount,
+        h.UNT_TRAN_AMT,
+        ABS((h.POLI_GROSS_PMT - s.mean_amount) / NULLIF(s.stddev_amount, 0)) AS z_score
+      FROM `{CUSTOMERS_TABLE}` h
       CROSS JOIN stats s
-      WHERE h.holding_amount IS NOT NULL
+      WHERE h.POLI_GROSS_PMT IS NOT NULL
     )
     SELECT *,
       IF(z_score > 2.0, 'HIGH', IF(z_score > 1.5, 'MEDIUM', 'LOW')) AS anomaly_flag
@@ -615,9 +617,9 @@ async def run_anomaly(limit: int = 20):
         rows_to_insert.append({
             "issue_id": str(uuid.uuid4())[:12],
             "rule_id": "ANOMALY_ZSCORE",
-            "rule_text": "Statistical anomaly detection (Z-score)",
+            "rule_text": "Statistical anomaly detection (Z-score) on payments",
             "detected_ts": datetime.utcnow().isoformat(),
-            "source_table": "holdings",
+            "source_table": "week1",
             "match_json": anomaly_json,
             "reviewed": False,
             "severity": "high" if z_score > 2.0 else "medium",
@@ -649,7 +651,7 @@ async def get_metrics():
     q1 = f"""
     SELECT
       COUNT(*) AS total,
-      COUNTIF(date_of_birth IS NULL) AS missing
+      COUNTIF(CUS_DOB IS NULL OR CAST(CUS_DOB AS STRING) = '') AS missing
     FROM `{CUSTOMERS_TABLE}`
     """
     df1 = run_bq_query(PROJECT_ID, q1)
@@ -677,17 +679,19 @@ async def get_metrics():
         metrics["issues_by_rule"] = []
         metrics["total_issues"] = 0
 
-    # 3. Holdings statistics
+    # 3. Payment statistics
     q3 = f"""
     SELECT
-      COUNT(*) AS total_holdings,
-      AVG(holding_amount) AS avg_amount,
-      MIN(holding_amount) AS min_amount,
-      MAX(holding_amount) AS max_amount
-    FROM `{HOLDINGS_TABLE}`
+      COUNT(*) AS total_records,
+      AVG(POLI_GROSS_PMT) AS avg_payment,
+      MIN(POLI_GROSS_PMT) AS min_payment,
+      MAX(POLI_GROSS_PMT) AS max_payment,
+      COUNTIF(POLI_GROSS_PMT < 0) AS negative_payments
+    FROM `{CUSTOMERS_TABLE}`
+    WHERE POLI_GROSS_PMT IS NOT NULL
     """
     df3 = run_bq_query(PROJECT_ID, q3)
-    metrics["holdings_stats"] = df3.iloc[0].to_dict()
+    metrics["payment_stats"] = df3.iloc[0].to_dict()
 
     return {"result": metrics}
 
@@ -836,7 +840,7 @@ async def save_metrics_endpoint():
     """
     # DOB completeness
     q1 = f"""
-    SELECT COUNT(*) AS total, COUNTIF(date_of_birth IS NULL) AS missing
+    SELECT COUNT(*) AS total, COUNTIF(CUS_DOB IS NULL OR CAST(CUS_DOB AS STRING) = '') AS missing
     FROM `{CUSTOMERS_TABLE}`
     """
     df1 = run_bq_query(PROJECT_ID, q1)

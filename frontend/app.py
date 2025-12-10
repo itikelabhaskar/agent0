@@ -69,9 +69,10 @@ st.title("AgentX - Data Quality Agent")
 st.caption("Multi-Agent AI System for Data Quality Management")
 
 st.subheader("1. Run Identifier")
-# Project is handled by backend config - just show for display
-project_display = os.environ.get("AGENTX_PROJECT_DISPLAY", "auto-configured")
-table = st.text_input("BigQuery Table", value="dev_dataset.customers")
+# Project is handled by backend config
+project_display = os.environ.get("AGENTX_PROJECT_DISPLAY", "hackathon-practice-480508")
+table_options = ["dev_dataset.week1", "dev_dataset.week2", "dev_dataset.week3", "dev_dataset.week4"]
+table = st.selectbox("Select BigQuery Table (Week)", table_options, index=0)
 
 if st.button("Run Identifier"):
     with st.spinner("Running Identifier Agent..."):
@@ -185,7 +186,7 @@ with col1:
         if nl_text:
             with st.spinner("Generating SQL using AI..."):
                 resp = requests.post(f"{BACKEND_URL}/generate-rule-sql", json={
-                    "project": project,
+                    "project": project_display,
                     "nl_text": nl_text,
                     "created_by": user_email
                 })
@@ -413,7 +414,11 @@ if st.button("Run Anomaly Detection"):
             if top_anomalies:
                 st.write(f"**Top {len(top_anomalies)} Anomalies:**")
                 for anom in top_anomalies[:5]:  # Show top 5
-                    st.write(f"- Customer {anom.get('customer_id')}: Amount ${anom.get('holding_amount'):.2f} (Z-score: {anom.get('z_score', 0):.2f})")
+                    cus_id = anom.get('CUS_ID', 'N/A')
+                    name = f"{anom.get('CUS_FORNAME', '')} {anom.get('CUS_SURNAME', '')}"
+                    amount = anom.get('payment_amount', 0)
+                    z_score = anom.get('z_score', 0)
+                    st.write(f"- Customer {cus_id} ({name}): Payment ${amount:.2f} (Z-score: {z_score:.2f})")
         else:
             st.error("Failed to run anomaly detection")
 
@@ -448,13 +453,14 @@ if metrics:
         for issue in issues_by_rule:
             st.write(f"- **{issue['rule_id']}**: {issue['cnt']} issues ({issue.get('high_severity', 0)} high severity)")
     
-    st.write("### Holdings Statistics")
-    holdings_stats = metrics.get("holdings_stats", {})
-    if holdings_stats:
-        st.write(f"- Total Holdings: {holdings_stats.get('total_holdings', 0)}")
-        st.write(f"- Average Amount: ${holdings_stats.get('avg_amount', 0):.2f}")
-        st.write(f"- Min Amount: ${holdings_stats.get('min_amount', 0):.2f}")
-        st.write(f"- Max Amount: ${holdings_stats.get('max_amount', 0):.2f}")
+    st.write("### Payment Statistics")
+    payment_stats = metrics.get("payment_stats", {})
+    if payment_stats:
+        st.write(f"- Total Records: {payment_stats.get('total_records', 0)}")
+        st.write(f"- Average Payment: ${payment_stats.get('avg_payment', 0):.2f}")
+        st.write(f"- Min Payment: ${payment_stats.get('min_payment', 0):.2f}")
+        st.write(f"- Max Payment: ${payment_stats.get('max_payment', 0):.2f}")
+        st.write(f"- Negative Payments: {payment_stats.get('negative_payments', 0)}")
 else:
     st.info("Click 'Refresh Metrics' to load data quality metrics")
 

@@ -1,10 +1,16 @@
 {
   "mode": "local",
-  "project_id": "hackathon-practice-480508",
+  "project_id": "AUTO_DETECT",
   "dataset": "dev_dataset",
-  "raw_table": "dev_dataset.customers",
-  "clean_table": "dev_dataset.cleaned_customers",
+  "raw_table": "dev_dataset.week1",
+  "week1_table": "dev_dataset.week1",
+  "week2_table": "dev_dataset.week2",
+  "week3_table": "dev_dataset.week3",
+  "week4_table": "dev_dataset.week4",
+  "clean_table": "dev_dataset.cleaned_data",
   "rules_table": "dev_dataset.rules",
+  "issues_table": "dev_dataset.issues",
   "use_vertex": true,
-  "vertex_model": "projects/hackathon-practice-480508/locations/us-central1/models/text-bison@001"
+  "vertex_model": "gemini-1.5-flash",
+  "_comment": "project_id AUTO_DETECT means it will use the active gcloud project"
 }

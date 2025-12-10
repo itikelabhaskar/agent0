@@ -2,7 +2,7 @@
 # Wraps the ADK agent for API calls
 
 import os
-from agent.tools import detect_missing_dob, read_local_csv
+from agent.tools import detect_missing_dob
 
 def run_identifier(project, table):
     """
@@ -10,59 +10,24 @@ def run_identifier(project, table):
 
     Args:
         project (str): GCP project ID
-        table (str): Full table reference in format 'dataset.table'
+        table (str): Full table reference in format 'dataset.table' or 'project.dataset.table'
 
     Returns:
         dict: Results of the data quality check
     """
     try:
-        # For testing, use local CSV data instead of BigQuery
-        # This allows us to test the API without needing BigQuery setup
-
-        if table == "customers.sample":
-            # Use local customers CSV for testing
-            csv_path = os.path.join(os.path.dirname(__file__), "..", "fake_data", "customers_sample.csv")
-            if os.path.exists(csv_path):
-                data = read_local_csv(csv_path)
-                # Simulate missing DOB detection
-                import math
-                missing_dob_records = []
-                for record in data:
-                    dob = record.get('date_of_birth', '')
-                    # Handle NaN, None, empty strings, and whitespace
-                    is_missing = (
-                        dob is None or
-                        (isinstance(dob, float) and math.isnan(dob)) or
-                        str(dob).strip() == '' or
-                        str(dob).lower() in ['nan', 'none', 'null']
-                    )
-                    if is_missing:
-                        # Clean the record to remove NaN values for JSON serialization
-                        clean_record = {}
-                        for key, value in record.items():
-                            if isinstance(value, float) and math.isnan(value):
-                                clean_record[key] = None
-                            else:
-                                clean_record[key] = value
-                        missing_dob_records.append(clean_record)
-                return {
-                    "status": "success",
-                    "check_type": "missing_dob",
-                    "results": missing_dob_records,
-                    "count": len(missing_dob_records),
-                    "source": "local_csv"
-                }
-            else:
-                return {
-                    "status": "error",
-                    "message": f"CSV file not found: {csv_path}"
-                }
-
-        # Parse dataset and table from the table parameter for BigQuery
-        if '.' not in table:
-            raise ValueError("Table parameter must be in format 'dataset.table'")
-
-        dataset, table_name = table.split('.', 1)
+        # Parse the table parameter
+        # Support both 'dataset.table' and 'project.dataset.table' formats
+        parts = table.split('.')
+        
+        if len(parts) == 2:
+            # Format: dataset.table
+            dataset, table_name = parts
+        elif len(parts) == 3:
+            # Format: project.dataset.table
+            _, dataset, table_name = parts
+        else:
+            raise ValueError("Table parameter must be in format 'dataset.table' or 'project.dataset.table'")
 
         # Run the missing DOB detection on BigQuery
         results = detect_missing_dob(project, dataset, table_name)
@@ -72,13 +37,15 @@ def run_identifier(project, table):
             "check_type": "missing_dob",
             "results": results,
             "count": len(results),
-            "source": "bigquery"
+            "source": "bigquery",
+            "table": f"{project}.{dataset}.{table_name}"
         }
 
     except Exception as e:
         return {
             "status": "error",
-            "message": str(e)
+            "message": str(e),
+            "table": table
         }
 
 
