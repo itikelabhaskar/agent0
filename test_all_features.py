@@ -6,8 +6,14 @@ Tests all endpoints and features systematically
 import requests
 import json
 import time
+import os
 
-BASE = 'http://127.0.0.1:8080'
+try:
+    with open(".backend_port", "r") as f:
+        port = f.read().strip()
+        BASE = f'http://127.0.0.1:{port}'
+except FileNotFoundError:
+    BASE = 'http://127.0.0.1:8080'
 
 def test_endpoint(name, method, url, payload=None, params=None):
     """Helper to test an endpoint"""

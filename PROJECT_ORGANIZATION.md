@@ -180,7 +180,7 @@ python tests/integration/test_final_features.py
 ### **3. Start Application**
 ```bash
 # Terminal 1: Backend
-uvicorn backend.main:app --reload --port 8080
+python run_backend.py
 
 # Terminal 2: Frontend
 streamlit run frontend/app.py

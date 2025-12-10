@@ -7,7 +7,7 @@
 # Backend
 cd agentx
 .\.venv\Scripts\Activate.ps1  # Windows
-uvicorn backend.main:app --reload --port 8080
+python run_backend.py
 
 # Frontend (new terminal)
 streamlit run frontend/app.py

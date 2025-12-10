@@ -39,7 +39,7 @@ source .venv/bin/activate      # Linux/Mac
 pip install -r requirements.txt
 
 # Run backend (Terminal 1)
-uvicorn backend.main:app --reload --port 8080
+python run_backend.py
 
 # Run frontend (Terminal 2)
 streamlit run frontend/app.py

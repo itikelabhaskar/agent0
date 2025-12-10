@@ -7,8 +7,16 @@ import pandas as pd
 from datetime import datetime, timedelta
 import os
 
+# Try to read port from .backend_port file if it exists (created by run_backend.py)
+try:
+    with open(".backend_port", "r") as f:
+        port = f.read().strip()
+        DEFAULT_BACKEND_URL = f"http://127.0.0.1:{port}"
+except FileNotFoundError:
+    DEFAULT_BACKEND_URL = "http://127.0.0.1:8080"
+
 # Use local backend by default, can be overridden with environment variable
-BACKEND_URL = os.environ.get("BACKEND_URL", "http://127.0.0.1:8080")
+BACKEND_URL = os.environ.get("BACKEND_URL", DEFAULT_BACKEND_URL)
 
 
 def safe_json_response(resp, default=None):

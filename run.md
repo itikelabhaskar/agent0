@@ -1,11 +1,11 @@
 
 
 ```powershell
-.\.venv\Scripts\Activate.ps1; uvicorn backend.main:app --reload --port 8080
+.\.venv\Scripts\Activate.ps1; python run_backend.py
 ```
 
-**Backend will be available at**: http://127.0.0.1:8080  
-**API Documentation**: http://127.0.0.1:8080/docs
+**Backend will be available at**: http://127.0.0.1:<PORT> (Check terminal output)
+**API Documentation**: http://127.0.0.1:<PORT>/docs
 
 ### Step 3: Start Frontend (Terminal 2)
 
@@ -22,7 +22,7 @@
 If you want to run both in sequence (frontend after backend stops):
 
 ```powershell
-.\.venv\Scripts\Activate.ps1; uvicorn backend.main:app --reload --port 8080
+.\.venv\Scripts\Activate.ps1; python run_backend.py
 ```
 
 Then in another terminal:
@@ -36,8 +36,8 @@ Then in another terminal:
 ## Access the Application
 
 - **Web Interface**: http://localhost:8501
-- **API Docs**: http://127.0.0.1:8080/docs
-- **API Root**: http://127.0.0.1:8080
+- **API Docs**: http://127.0.0.1:<PORT>/docs
+- **API Root**: http://127.0.0.1:<PORT>
 
 ---
 
